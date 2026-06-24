@@ -129,6 +129,10 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric" }).format(date);
 }
 
+function dueSortValue(task) {
+  return task.due ? new Date(`${task.due}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+}
+
 function visibleTasks() {
   const query = state.query.trim().toLowerCase();
   return activeTasks()
@@ -140,6 +144,8 @@ function visibleTasks() {
     .filter((task) => !query || task.title.toLowerCase().includes(query))
     .sort((a, b) => {
       if (a.done !== b.done) return Number(a.done) - Number(b.done);
+      const dueDiff = dueSortValue(a) - dueSortValue(b);
+      if (dueDiff !== 0) return dueDiff;
       const rank = { high: 0, normal: 1, low: 2 };
       return rank[a.priority] - rank[b.priority] || b.createdAt - a.createdAt;
     });
