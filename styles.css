@@ -471,8 +471,8 @@ h1 {
 }
 
 .task-priority-edit {
-  width: 86px;
-  padding: 0 24px 0 10px;
+  width: 104px;
+  padding: 0 26px 0 12px;
 }
 
 .task-due-edit {
@@ -758,5 +758,20 @@ h1 {
 
   .sync-actions {
     display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sync-actions .ghost-btn {
+    min-height: 48px;
+    padding: 0 6px;
+    gap: 4px;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+
+  .sync-actions .ghost-btn svg {
+    width: 16px;
+    height: 16px;
   }
 }
