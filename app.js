@@ -2,6 +2,8 @@ const storageKey = "github-pages-todo-list";
 const syncStorageKey = "github-pages-todo-sync";
 const clientStorageKey = "github-pages-todo-client";
 const gistFileName = "todo-list-data.json";
+const syncDebounceMs = 1200;
+const autoSyncIntervalMs = 60000;
 
 const state = {
   tasks: [],
@@ -12,6 +14,8 @@ const state = {
     gistId: "",
     syncing: false,
     timer: 0,
+    interval: 0,
+    queuedMode: "",
     lastSyncedAt: 0,
   },
 };
@@ -89,7 +93,7 @@ function loadSyncConfig() {
 
   els.syncToken.value = state.sync.token;
   els.syncGist.value = state.sync.gistId;
-  setSyncStatus(state.sync.gistId ? "GitHub 同步已配置" : "未配置 GitHub 同步");
+  setSyncStatus(hasSyncConfig() ? "GitHub 自动同步已开启" : "未配置 GitHub 同步");
 }
 
 function saveSyncConfig() {
@@ -172,9 +176,17 @@ function setSyncStatus(message) {
   els.syncStatus.textContent = message;
 }
 
+function hasSyncConfig() {
+  return Boolean(state.sync.token && state.sync.gistId);
+}
+
+function formatSyncTime(value) {
+  return value ? new Date(value).toLocaleString("zh-CN") : "";
+}
+
 function renderSync() {
-  const configured = Boolean(state.sync.token && state.sync.gistId);
-  els.syncBadge.textContent = state.sync.syncing ? "同步中" : configured ? "已配置" : "未同步";
+  const configured = hasSyncConfig();
+  els.syncBadge.textContent = state.sync.syncing ? "同步中" : configured ? "自动同步" : "未同步";
   els.syncToggle.classList.toggle("is-syncing", state.sync.syncing);
   els.syncCreate.disabled = state.sync.syncing || !state.sync.token;
   els.syncNow.disabled = state.sync.syncing || !configured;
@@ -355,7 +367,8 @@ async function createGist() {
     state.sync.lastSyncedAt = Date.now();
     els.syncGist.value = gist.id;
     saveSyncConfig();
-    setSyncStatus(`已新建 Gist：${gist.id}`);
+    startAutoSync();
+    setSyncStatus(`已新建 Gist，自动同步已开启：${gist.id}`);
   } catch (error) {
     setSyncStatus(`同步失败：${error.message}`);
   } finally {
@@ -384,6 +397,11 @@ async function pushRemoteTasks() {
 }
 
 async function syncTasks(mode = "merge") {
+  if (state.sync.syncing) {
+    state.sync.queuedMode = mode === "pull" ? "merge" : mode;
+    return;
+  }
+
   state.sync.syncing = true;
   renderSync();
   setSyncStatus(mode === "pull" ? "正在拉取..." : "正在同步...");
@@ -400,21 +418,41 @@ async function syncTasks(mode = "merge") {
     state.sync.lastSyncedAt = Date.now();
     saveSyncConfig();
     render();
-    setSyncStatus(`同步完成：${new Date(state.sync.lastSyncedAt).toLocaleString("zh-CN")}`);
+    setSyncStatus(`自动同步已开启，上次同步：${formatSyncTime(state.sync.lastSyncedAt)}`);
   } catch (error) {
     setSyncStatus(`同步失败：${error.message}`);
   } finally {
     state.sync.syncing = false;
     renderSync();
+    if (state.sync.queuedMode && hasSyncConfig()) {
+      const nextMode = state.sync.queuedMode;
+      state.sync.queuedMode = "";
+      queueSync(nextMode, 200);
+    }
   }
 }
 
-function scheduleSync() {
-  if (!state.sync.token || !state.sync.gistId) return;
+function queueSync(mode = "merge", delay = syncDebounceMs) {
+  if (!hasSyncConfig()) return;
   clearTimeout(state.sync.timer);
   state.sync.timer = window.setTimeout(() => {
-    syncTasks("merge").catch((error) => setSyncStatus(`同步失败：${error.message}`));
-  }, 900);
+    syncTasks(mode).catch((error) => setSyncStatus(`同步失败：${error.message}`));
+  }, delay);
+}
+
+function scheduleSync() {
+  queueSync("merge", syncDebounceMs);
+}
+
+function startAutoSync() {
+  clearInterval(state.sync.interval);
+  if (!hasSyncConfig()) return;
+
+  state.sync.interval = window.setInterval(() => {
+    if (document.visibilityState === "visible" && navigator.onLine !== false) {
+      queueSync("merge", 0);
+    }
+  }, autoSyncIntervalMs);
 }
 
 els.form.addEventListener("submit", (event) => {
@@ -479,8 +517,14 @@ els.syncForm.addEventListener("submit", (event) => {
   state.sync.token = els.syncToken.value.trim();
   state.sync.gistId = els.syncGist.value.trim();
   saveSyncConfig();
+  startAutoSync();
   renderSync();
-  setSyncStatus(state.sync.gistId ? "同步配置已保存" : "Token 已保存，可新建 Gist");
+  if (hasSyncConfig()) {
+    setSyncStatus("同步配置已保存，正在自动同步...");
+    queueSync("merge", 0);
+  } else {
+    setSyncStatus("Token 已保存，可新建 Gist");
+  }
 });
 
 els.syncCreate.addEventListener("click", () => {
@@ -494,6 +538,7 @@ els.syncNow.addEventListener("click", () => {
   state.sync.token = els.syncToken.value.trim();
   state.sync.gistId = els.syncGist.value.trim();
   saveSyncConfig();
+  startAutoSync();
   syncTasks("merge");
 });
 
@@ -501,6 +546,7 @@ els.syncPull.addEventListener("click", () => {
   state.sync.token = els.syncToken.value.trim();
   state.sync.gistId = els.syncGist.value.trim();
   saveSyncConfig();
+  startAutoSync();
   syncTasks("pull");
 });
 
@@ -508,8 +554,15 @@ loadTasks();
 loadSyncConfig();
 render();
 
-if (state.sync.token && state.sync.gistId) {
-  window.setTimeout(() => {
-    syncTasks("merge").catch((error) => setSyncStatus(`同步失败：${error.message}`));
-  }, 500);
-}
+startAutoSync();
+queueSync("merge", 500);
+
+window.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    queueSync("merge", 300);
+  }
+});
+
+window.addEventListener("online", () => {
+  queueSync("merge", 300);
+});
