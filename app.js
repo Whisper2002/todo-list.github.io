@@ -46,12 +46,6 @@ const els = {
   syncPull: document.querySelector("#sync-pull"),
 };
 
-const priorityText = {
-  high: "重要",
-  normal: "普通",
-  low: "低优先",
-};
-
 function normalizeTask(task) {
   const now = Date.now();
   return {
@@ -205,8 +199,8 @@ function renderTask(task) {
   const node = els.template.content.firstElementChild.cloneNode(true);
   const checkbox = node.querySelector(".task-check");
   const edit = node.querySelector(".task-edit");
-  const priority = node.querySelector(".priority-pill");
-  const due = node.querySelector(".due-pill");
+  const priority = node.querySelector(".task-priority-edit");
+  const due = node.querySelector(".task-due-edit");
   const editBtn = node.querySelector(".edit-btn");
   const deleteBtn = node.querySelector(".delete-btn");
 
@@ -214,16 +208,10 @@ function renderTask(task) {
   node.classList.toggle("is-done", task.done);
   checkbox.checked = task.done;
   edit.value = task.title;
-  priority.textContent = priorityText[task.priority] || priorityText.normal;
-  priority.className = `priority-pill priority-${task.priority}`;
-
-  if (task.due) {
-    due.textContent = formatDate(task.due);
-    due.hidden = false;
-    due.classList.toggle("due-overdue", !task.done && task.due < todayISO());
-  } else {
-    due.hidden = true;
-  }
+  priority.value = task.priority;
+  priority.className = `task-priority-edit priority-${task.priority}`;
+  due.value = task.due || todayISO();
+  due.classList.toggle("due-overdue", !task.done && Boolean(task.due) && task.due < todayISO());
 
   checkbox.addEventListener("change", () => {
     task.done = checkbox.checked;
@@ -252,6 +240,22 @@ function renderTask(task) {
       edit.value = task.title;
       edit.blur();
     }
+  });
+
+  priority.addEventListener("change", () => {
+    task.priority = priority.value;
+    task.updatedAt = Date.now();
+    saveTasks();
+    scheduleSync();
+    render();
+  });
+
+  due.addEventListener("change", () => {
+    task.due = due.value || todayISO();
+    task.updatedAt = Date.now();
+    saveTasks();
+    scheduleSync();
+    render();
   });
 
   editBtn.addEventListener("click", () => {

@@ -7,7 +7,7 @@
     <title>Todo List</title>
     <link rel="icon" href="assets/focus-scene.png" type="image/png">
     <link rel="preload" as="image" href="assets/focus-scene.png">
-    <link rel="stylesheet" href="styles.css?v=20260624-form3">
+    <link rel="stylesheet" href="styles.css?v=20260624-edit4">
   </head>
   <body>
     <main class="app-shell">
@@ -72,7 +72,10 @@
               <option value="low">低优先</option>
             </select>
           </label>
-          <input id="task-due" name="due" type="hidden">
+          <label class="date-wrap" for="task-due">
+            <span class="sr-only">日期</span>
+            <input id="task-due" name="due" type="date" aria-label="日期">
+          </label>
           <button class="primary-btn" type="submit">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
             <span>添加</span>
@@ -118,8 +121,18 @@
         <div class="task-content">
           <input class="task-edit" type="text" maxlength="120">
           <div class="task-meta">
-            <span class="priority-pill"></span>
-            <span class="due-pill"></span>
+            <label class="task-field">
+              <span class="sr-only">修改优先级</span>
+              <select class="task-priority-edit" aria-label="修改优先级">
+                <option value="normal">普通</option>
+                <option value="high">重要</option>
+                <option value="low">低优先</option>
+              </select>
+            </label>
+            <label class="task-field">
+              <span class="sr-only">修改日期</span>
+              <input class="task-due-edit" type="date" aria-label="修改日期">
+            </label>
           </div>
         </div>
         <div class="task-actions">
@@ -133,6 +146,6 @@
       </li>
     </template>
 
-    <script src="app.js?v=20260624-form3"></script>
+    <script src="app.js?v=20260624-edit4"></script>
   </body>
 </html>
