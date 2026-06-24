@@ -118,7 +118,15 @@ function activeTasks() {
 }
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function setDefaultDueDate() {
+  els.due.value = todayISO();
 }
 
 function formatDate(value) {
@@ -464,7 +472,7 @@ els.form.addEventListener("submit", (event) => {
     id: crypto.randomUUID(),
     title,
     priority: els.priority.value,
-    due: els.due.value,
+    due: els.due.value || todayISO(),
     done: false,
     deleted: false,
     createdAt: Date.now(),
@@ -474,6 +482,7 @@ els.form.addEventListener("submit", (event) => {
 
   els.form.reset();
   els.priority.value = "normal";
+  setDefaultDueDate();
   els.title.focus();
   saveTasks();
   scheduleSync();
@@ -552,6 +561,7 @@ els.syncPull.addEventListener("click", () => {
 
 loadTasks();
 loadSyncConfig();
+setDefaultDueDate();
 render();
 
 startAutoSync();
