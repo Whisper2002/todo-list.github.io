@@ -232,7 +232,9 @@ h1 {
 .select-wrap,
 .date-wrap,
 .search-wrap {
+  display: block;
   min-width: 0;
+  width: 100%;
 }
 
 .task-form input,
@@ -253,10 +255,20 @@ h1 {
 }
 
 .task-form input[type="date"] {
+  display: block;
   max-width: 100%;
   min-width: 0;
+  line-height: 44px;
+  text-align: left;
   -webkit-appearance: none;
   appearance: none;
+}
+
+.task-form input[type="date"]::-webkit-date-and-time-value {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  text-align: left;
 }
 
 .task-form select {
@@ -599,11 +611,14 @@ h1 {
   .app-shell {
     width: 100%;
     padding: 0;
+    display: block;
   }
 
   .workspace {
     min-height: 100vh;
     min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
     padding: max(16px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
     gap: 12px;
     border: 0;
@@ -631,7 +646,25 @@ h1 {
   }
 
   .task-form {
+    display: flex;
+    flex-direction: column;
     grid-template-columns: 1fr;
+  }
+
+  .task-form > * {
+    width: 100%;
+  }
+
+  .task-form input,
+  .task-form select {
+    display: block;
+    width: 100%;
+  }
+
+  .task-form input[type="date"] {
+    min-width: 100%;
+    max-width: 100%;
+    padding-right: 14px;
   }
 
   .primary-btn {
@@ -641,9 +674,19 @@ h1 {
 
   .list-panel {
     min-height: 0;
+    overflow: visible;
+  }
+
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
   }
 
   .task-item {
+    flex: 0 0 auto;
     grid-template-columns: 30px minmax(0, 1fr);
     align-items: start;
     padding: 14px 12px;
